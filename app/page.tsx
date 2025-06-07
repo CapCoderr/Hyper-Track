@@ -1,8 +1,7 @@
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dumbbell, Plus, TrendingUp } from "lucide-react"
+import { Dumbbell } from "lucide-react"
 import MuscleGroupExercises from "@/components/muscle-group-exercises"
 import WorkoutList from "@/components/workout-list"
 import EditableDashboardCard from "@/components/editable-dashboard-card"
@@ -10,7 +9,7 @@ import EditablePersonalRecords from "@/components/editable-personal-records"
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen w-full flex-col bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="flex min-h-screen w-full flex-col bg-gradient-to-br from-slate-100 to-blue-100">
       <header className="sticky top-0 z-10 flex h-14 sm:h-16 items-center gap-2 sm:gap-4 border-b border-blue-200 bg-white/80 backdrop-blur-md px-3 sm:px-4 md:px-6 shadow-sm">
         <Link href="/" className="flex items-center gap-2 sm:gap-3 font-bold">
           <div className="p-1.5 sm:p-2 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg sm:rounded-xl">
@@ -20,31 +19,6 @@ export default function Home() {
             HyperTrack
           </span>
         </Link>
-        <nav className="ml-auto flex gap-2 sm:gap-3">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="h-8 sm:h-9 text-xs sm:text-sm font-medium hover:bg-blue-100 px-2 sm:px-3"
-          >
-            <Link href="/history">
-              <TrendingUp className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline font-medium">History</span>
-              <span className="xs:hidden font-medium">Hist</span>
-            </Link>
-          </Button>
-          <Button
-            asChild
-            size="sm"
-            className="h-8 sm:h-9 text-xs sm:text-sm bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-lg px-2 sm:px-3 font-medium"
-          >
-            <Link href="/add-workout">
-              <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden xs:inline">Log Workout</span>
-              <span className="xs:hidden">Log</span>
-            </Link>
-          </Button>
-        </nav>
       </header>
 
       <main className="flex flex-1 flex-col gap-3 sm:gap-4 p-3 sm:p-4 md:gap-6 md:p-6">
@@ -84,7 +58,7 @@ export default function Home() {
           </CardHeader>
           <CardContent className="px-3 sm:px-6">
             <Tabs defaultValue="chest" className="space-y-4 sm:space-y-6">
-              <TabsList className="grid grid-cols-3 sm:flex sm:flex-wrap h-auto bg-gradient-to-r from-blue-100 to-indigo-100 p-1 rounded-xl gap-1 sm:gap-0">
+              <TabsList className="grid grid-cols-3 sm:flex sm:flex-wrap h-auto bg-gradient-to-r from-blue-200 to-indigo-200 p-1 rounded-xl gap-1 sm:gap-0">
                 <TabsTrigger
                   value="chest"
                   className="text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md font-medium"
@@ -209,7 +183,7 @@ export default function Home() {
           </CardHeader>
           <CardContent className="px-3 sm:px-6">
             <Tabs defaultValue="push" className="space-y-4 sm:space-y-6">
-              <TabsList className="grid grid-cols-2 sm:flex sm:flex-wrap h-auto bg-gradient-to-r from-blue-100 to-indigo-100 p-1 rounded-xl gap-1 sm:gap-0">
+              <TabsList className="grid grid-cols-2 sm:flex sm:flex-wrap h-auto bg-gradient-to-r from-blue-200 to-indigo-200 p-1 rounded-xl gap-1 sm:gap-0">
                 <TabsTrigger
                   value="push"
                   className="text-xs sm:text-sm h-8 sm:h-9 px-2 sm:px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-md font-medium"

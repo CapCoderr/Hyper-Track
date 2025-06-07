@@ -1,14 +1,15 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Edit2, Plus, Save, Trash2 } from "lucide-react"
+import { Edit2, Plus, Save, Trash2, X } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card, CardContent } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 
 interface Exercise {
+  id: string
   name: string
   weight: string
   reps: string
@@ -17,198 +18,303 @@ interface Exercise {
 
 interface MuscleGroupExercisesProps {
   muscleGroup: string
-  exercises?: Exercise[]
   storageKey: string
 }
 
-export default function MuscleGroupExercises({
-  muscleGroup,
-  exercises: initialExercises = [],
-  storageKey,
-}: MuscleGroupExercisesProps) {
-  const [exercises, setExercises] = useState<Exercise[]>(initialExercises)
-  const [editingIndex, setEditingIndex] = useState<number | null>(null)
-  const [editedExercise, setEditedExercise] = useState<Exercise | null>(null)
+export default function MuscleGroupExercises({ muscleGroup, storageKey }: MuscleGroupExercisesProps) {
+  const [exercises, setExercises] = useState<Exercise[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<Exercise>({
+    id: "",
+    name: "",
+    weight: "",
+    reps: "",
+    notes: "",
+  })
+  const [isCreating, setIsCreating] = useState(false)
+  const [newExercises, setNewExercises] = useState<Exercise[]>([])
 
-  // Load from localStorage on mount
+  // Load from localStorage
   useEffect(() => {
-    try {
-      const savedExercises = localStorage.getItem(storageKey)
-      if (savedExercises) {
-        const parsedExercises = JSON.parse(savedExercises)
-        if (Array.isArray(parsedExercises)) {
-          setExercises(parsedExercises)
+    const saved = localStorage.getItem(storageKey)
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) {
+          setExercises(parsed)
         }
+      } catch (e) {
+        console.error("Failed to parse exercises:", e)
       }
-    } catch (e) {
-      console.error("Failed to parse saved exercises", e)
     }
   }, [storageKey])
 
-  // Save to localStorage whenever exercises change
+  // Save to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(exercises))
-    } catch (e) {
-      console.error("Failed to save exercises to localStorage", e)
-    }
+    localStorage.setItem(storageKey, JSON.stringify(exercises))
   }, [exercises, storageKey])
 
-  const startEditing = (index: number) => {
-    setEditingIndex(index)
-    setEditedExercise({ ...exercises[index] })
+  const handleStartCreating = () => {
+    setIsCreating(true)
+    setNewExercises([
+      {
+        id: `temp-${Date.now()}`,
+        name: "",
+        weight: "",
+        reps: "",
+        notes: "",
+      },
+    ])
   }
 
-  const cancelEditing = () => {
-    setEditingIndex(null)
-    setEditedExercise(null)
-  }
-
-  const saveEditing = () => {
-    if (editingIndex !== null && editedExercise) {
-      const newExercises = [...exercises]
-      newExercises[editingIndex] = editedExercise
-      setExercises(newExercises)
-      setEditingIndex(null)
-      setEditedExercise(null)
-    }
-  }
-
-  const handleEditChange = (field: keyof Exercise, value: string) => {
-    if (editedExercise) {
-      setEditedExercise({
-        ...editedExercise,
-        [field]: value,
-      })
-    }
+  const handleCancelCreating = () => {
+    setIsCreating(false)
+    setNewExercises([])
   }
 
   const addNewExercise = () => {
     const newExercise: Exercise = {
+      id: `temp-${Date.now()}-${Math.random()}`,
       name: "",
       weight: "",
       reps: "",
       notes: "",
     }
-    setExercises([...exercises, newExercise])
-    setEditingIndex(exercises.length)
-    setEditedExercise(newExercise)
+    setNewExercises([...newExercises, newExercise])
   }
 
-  const deleteExercise = (index: number) => {
-    const newExercises = [...exercises]
-    newExercises.splice(index, 1)
-    setExercises(newExercises)
-    if (editingIndex === index) {
-      cancelEditing()
+  const removeNewExercise = (exerciseId: string) => {
+    if (newExercises.length > 1) {
+      setNewExercises(newExercises.filter((ex) => ex.id !== exerciseId))
     }
   }
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    // Allow touch events to propagate in tables for mobile scrolling
-    e.stopPropagation()
+  const updateNewExercise = (exerciseId: string, field: keyof Exercise, value: string) => {
+    setNewExercises(newExercises.map((ex) => (ex.id === exerciseId ? { ...ex, [field]: value } : ex)))
+  }
+
+  const saveNewExercises = () => {
+    const validExercises = newExercises.filter((ex) => ex.name.trim())
+
+    if (validExercises.length === 0) {
+      alert("Please add at least one exercise with a name")
+      return
+    }
+
+    const exercisesToAdd = validExercises.map((ex) => ({
+      ...ex,
+      id: `${muscleGroup}-${Date.now()}-${Math.random()}`,
+    }))
+
+    setExercises([...exercises, ...exercisesToAdd])
+    handleCancelCreating()
+  }
+
+  const handleEdit = (exercise: Exercise) => {
+    setEditingId(exercise.id)
+    setEditForm({ ...exercise })
+  }
+
+  const handleSaveEdit = () => {
+    setExercises(exercises.map((ex) => (ex.id === editingId ? editForm : ex)))
+    setEditingId(null)
+    setEditForm({
+      id: "",
+      name: "",
+      weight: "",
+      reps: "",
+      notes: "",
+    })
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setEditForm({
+      id: "",
+      name: "",
+      weight: "",
+      reps: "",
+      notes: "",
+    })
+  }
+
+  const handleDelete = (id: string) => {
+    setExercises(exercises.filter((ex) => ex.id !== id))
   }
 
   return (
-    <div className="space-y-3 sm:space-y-4">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-        <h3 className="text-base sm:text-lg font-medium capitalize font-display">{muscleGroup} Exercises</h3>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-medium capitalize">{muscleGroup.replace("-", " ")} Exercises</h3>
         <Button
+          onClick={handleStartCreating}
           size="sm"
-          className="h-8 text-xs bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-md w-full sm:w-auto font-medium"
-          onClick={addNewExercise}
+          className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800"
         >
-          <Plus className="h-3 w-3 mr-1" />
+          <Plus className="h-4 w-4 mr-2" />
           Add Exercise
         </Button>
       </div>
 
+      {/* Create New Exercises Form */}
+      {isCreating && (
+        <Card className="border-2 border-blue-200">
+          <CardContent className="p-4">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="font-medium">Add New Exercises</h4>
+                <Button onClick={handleCancelCreating} variant="ghost" size="icon">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <Label>Exercises</Label>
+                  <Button onClick={addNewExercise} variant="outline" size="sm">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Exercise
+                  </Button>
+                </div>
+
+                {newExercises.map((exercise) => (
+                  <div key={exercise.id} className="border rounded-lg p-3 bg-gray-50">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1 max-w-xs">
+                          <Label htmlFor={`exercise-name-${exercise.id}`}>Exercise Name</Label>
+                          <Input
+                            id={`exercise-name-${exercise.id}`}
+                            value={exercise.name}
+                            onChange={(e) => updateNewExercise(exercise.id, "name", e.target.value)}
+                            placeholder="Enter exercise name"
+                          />
+                        </div>
+                        {newExercises.length > 1 && (
+                          <Button onClick={() => removeNewExercise(exercise.id)} variant="ghost" size="icon">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor={`exercise-weight-${exercise.id}`}>Weight (lbs)</Label>
+                          <Input
+                            id={`exercise-weight-${exercise.id}`}
+                            value={exercise.weight}
+                            onChange={(e) => updateNewExercise(exercise.id, "weight", e.target.value)}
+                            placeholder="Weight"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`exercise-reps-${exercise.id}`}>Reps</Label>
+                          <Input
+                            id={`exercise-reps-${exercise.id}`}
+                            value={exercise.reps}
+                            onChange={(e) => updateNewExercise(exercise.id, "reps", e.target.value)}
+                            placeholder="Reps"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor={`exercise-notes-${exercise.id}`}>Notes (optional)</Label>
+                        <Input
+                          id={`exercise-notes-${exercise.id}`}
+                          value={exercise.notes}
+                          onChange={(e) => updateNewExercise(exercise.id, "notes", e.target.value)}
+                          placeholder="Exercise notes"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={saveNewExercises} className="bg-gradient-to-r from-blue-600 to-indigo-700">
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Exercises
+                </Button>
+                <Button onClick={handleCancelCreating} variant="outline">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Exercises List */}
       {exercises.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground font-body">
+        <div className="text-center py-8 text-muted-foreground">
           No exercises added yet. Click "Add Exercise" to begin.
         </div>
       ) : (
-        <>
-          {/* Mobile Card View */}
+        <div className="space-y-3">
+          {/* Mobile View */}
           <div className="block sm:hidden space-y-3">
-            {exercises.map((exercise, index) => (
-              <div key={index} className="bg-white rounded-lg border border-blue-100 p-3 shadow-sm">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex-1">
-                    {editingIndex === index ? (
+            {exercises.map((exercise) => (
+              <div key={exercise.id} className="border rounded-lg p-3 bg-white">
+                {editingId === exercise.id ? (
+                  <div className="space-y-3">
+                    <Input
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      placeholder="Exercise name"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
                       <Input
-                        value={editedExercise?.name}
-                        onChange={(e) => handleEditChange("name", e.target.value)}
-                        className="h-8 text-sm font-medium mb-2 font-body"
-                        placeholder="Exercise name"
+                        value={editForm.weight}
+                        onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
+                        placeholder="Weight"
                       />
-                    ) : (
-                      <h4 className="font-medium text-sm text-gray-900 font-display">{exercise.name}</h4>
-                    )}
+                      <Input
+                        value={editForm.reps}
+                        onChange={(e) => setEditForm({ ...editForm, reps: e.target.value })}
+                        placeholder="Reps"
+                      />
+                    </div>
+                    <Input
+                      value={editForm.notes}
+                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                      placeholder="Notes"
+                    />
+                    <div className="flex gap-2">
+                      <Button onClick={handleSaveEdit} size="sm">
+                        <Save className="h-3 w-3 mr-1" />
+                        Save
+                      </Button>
+                      <Button onClick={handleCancelEdit} variant="outline" size="sm">
+                        <X className="h-3 w-3 mr-1" />
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-1 ml-2">
-                    {editingIndex === index ? (
-                      <>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={saveEditing}>
-                          <Save className="h-3 w-3" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={cancelEditing}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEditing(index)}>
+                ) : (
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium">{exercise.name}</h4>
+                      <div className="flex gap-1">
+                        <Button onClick={() => handleEdit(exercise)} variant="ghost" size="icon" className="h-8 w-8">
                           <Edit2 className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteExercise(index)}>
+                        <Button
+                          onClick={() => handleDelete(exercise.id)}
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                        >
                           <Trash2 className="h-3 w-3" />
                         </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs font-body">
-                  <div>
-                    <span className="text-gray-500 block mb-1">Weight (lbs)</span>
-                    {editingIndex === index ? (
-                      <Input
-                        value={editedExercise?.weight}
-                        onChange={(e) => handleEditChange("weight", e.target.value)}
-                        className="h-7 text-xs font-body"
-                      />
-                    ) : (
-                      <span className="font-medium">{exercise.weight}</span>
-                    )}
-                  </div>
-                  <div>
-                    <span className="text-gray-500 block mb-1">Reps</span>
-                    {editingIndex === index ? (
-                      <Input
-                        value={editedExercise?.reps}
-                        onChange={(e) => handleEditChange("reps", e.target.value)}
-                        className="h-7 text-xs font-body"
-                      />
-                    ) : (
-                      <span className="font-medium">{exercise.reps}</span>
-                    )}
-                  </div>
-                </div>
-
-                {(exercise.notes || editingIndex === index) && (
-                  <div className="mt-2">
-                    <span className="text-gray-500 text-xs block mb-1">Notes</span>
-                    {editingIndex === index ? (
-                      <Input
-                        value={editedExercise?.notes}
-                        onChange={(e) => handleEditChange("notes", e.target.value)}
-                        className="h-7 text-xs font-body"
-                        placeholder="Add notes..."
-                      />
-                    ) : (
-                      <span className="text-xs text-gray-600 font-body">{exercise.notes}</span>
-                    )}
+                      </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <div>Weight: {exercise.weight} lbs</div>
+                      <div>Reps: {exercise.reps}</div>
+                      {exercise.notes && <div>Notes: {exercise.notes}</div>}
+                    </div>
                   </div>
                 )}
               </div>
@@ -216,87 +322,92 @@ export default function MuscleGroupExercises({
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden sm:block overflow-x-auto" onTouchStart={handleTouchStart}>
+          <div className="hidden sm:block">
             <Table>
               <TableHeader>
-                <TableRow className="bg-blue-50">
-                  <TableHead className="text-xs sm:text-sm font-display">Exercise</TableHead>
-                  <TableHead className="text-xs sm:text-sm font-display">Weight (lbs)</TableHead>
-                  <TableHead className="text-xs sm:text-sm font-display">Reps</TableHead>
-                  <TableHead className="text-xs sm:text-sm font-display">Notes</TableHead>
-                  <TableHead className="w-[100px] text-xs sm:text-sm font-display">Actions</TableHead>
+                <TableRow>
+                  <TableHead>Exercise</TableHead>
+                  <TableHead>Weight (lbs)</TableHead>
+                  <TableHead>Reps</TableHead>
+                  <TableHead>Notes</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {exercises.map((exercise, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="text-xs sm:text-sm font-body">
-                      {editingIndex === index ? (
+                {exercises.map((exercise) => (
+                  <TableRow key={exercise.id}>
+                    <TableCell>
+                      {editingId === exercise.id ? (
                         <Input
-                          value={editedExercise?.name}
-                          onChange={(e) => handleEditChange("name", e.target.value)}
-                          className="h-8 font-body"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                          className="h-8"
                         />
                       ) : (
                         exercise.name
                       )}
                     </TableCell>
-                    <TableCell className="text-xs sm:text-sm font-body">
-                      {editingIndex === index ? (
+                    <TableCell>
+                      {editingId === exercise.id ? (
                         <Input
-                          value={editedExercise?.weight}
-                          onChange={(e) => handleEditChange("weight", e.target.value)}
-                          className="h-8 font-body"
+                          value={editForm.weight}
+                          onChange={(e) => setEditForm({ ...editForm, weight: e.target.value })}
+                          className="h-8 w-20"
                         />
                       ) : (
                         exercise.weight
                       )}
                     </TableCell>
-                    <TableCell className="text-xs sm:text-sm font-body">
-                      {editingIndex === index ? (
+                    <TableCell>
+                      {editingId === exercise.id ? (
                         <Input
-                          value={editedExercise?.reps}
-                          onChange={(e) => handleEditChange("reps", e.target.value)}
-                          className="h-8 font-body"
+                          value={editForm.reps}
+                          onChange={(e) => setEditForm({ ...editForm, reps: e.target.value })}
+                          className="h-8 w-20"
                         />
                       ) : (
                         exercise.reps
                       )}
                     </TableCell>
-                    <TableCell className="text-xs sm:text-sm font-body">
-                      {editingIndex === index ? (
+                    <TableCell>
+                      {editingId === exercise.id ? (
                         <Input
-                          value={editedExercise?.notes}
-                          onChange={(e) => handleEditChange("notes", e.target.value)}
-                          className="h-8 font-body"
+                          value={editForm.notes}
+                          onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                          className="h-8"
                         />
                       ) : (
-                        <span className="text-muted-foreground text-xs sm:text-sm">{exercise.notes}</span>
+                        <span className="text-muted-foreground text-sm">{exercise.notes}</span>
                       )}
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-1">
-                        {editingIndex === index ? (
+                        {editingId === exercise.id ? (
                           <>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={saveEditing}>
-                              <Save className="h-3 w-3" />
+                            <Button onClick={handleSaveEdit} variant="ghost" size="icon" className="h-8 w-8">
+                              <Save className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={cancelEditing}>
-                              <Trash2 className="h-3 w-3" />
+                            <Button onClick={handleCancelEdit} variant="ghost" size="icon" className="h-8 w-8">
+                              <X className="h-4 w-4" />
                             </Button>
                           </>
                         ) : (
                           <>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => startEditing(index)}>
-                              <Edit2 className="h-3 w-3" />
-                            </Button>
                             <Button
+                              onClick={() => handleEdit(exercise)}
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => deleteExercise(index)}
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              onClick={() => handleDelete(exercise.id)}
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </>
                         )}
@@ -307,7 +418,7 @@ export default function MuscleGroupExercises({
               </TableBody>
             </Table>
           </div>
-        </>
+        </div>
       )}
     </div>
   )
